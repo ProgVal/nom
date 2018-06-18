@@ -980,7 +980,7 @@ macro_rules! fold_many_m_n(
       let     f            = $f;
       let mut input        = $i.clone();
       let mut count: usize = 0;
-      let mut err          = false;
+      let mut err          = $crate::lib::std::option::Option::None;
       let mut incomplete: $crate::lib::std::option::Option<Needed> = $crate::lib::std::option::Option::None;
       loop {
         if count == $n { break }
@@ -994,9 +994,12 @@ macro_rules! fold_many_m_n(
             input  = i;
             count += 1;
           }
-          //FIXME: handle failure properly
-          Err(Err::Error(_)) | Err(Err::Failure(_)) => {
-            err = true;
+          Err(Err::Error(_)) => {
+            err = $crate::lib::std::option::Option::Some(Err::Error(error_position!($i, $crate::ErrorKind::ManyMN)));
+            break;
+          }
+          Err(Err::Failure(kind)) => {
+            err = $crate::lib::std::option::Option::Some(Err::Failure(kind));
             break;
           },
           Err(Err::Incomplete(i)) => {
@@ -1007,8 +1010,8 @@ macro_rules! fold_many_m_n(
       }
 
       if count < $m {
-        if err {
-          Err(Err::Error(error_position!($i, $crate::ErrorKind::ManyMN)))
+        if let $crate::lib::std::option::Option::Some(e) = err {
+          Err(e)
         } else {
           match incomplete {
             $crate::lib::std::option::Option::Some(i) => Err(Err::Incomplete(i)),
